@@ -5,6 +5,7 @@ A complete redesign and self-contained static build of **Burds Family Practice**
 ## Structure
 
 ```text
+seo.py              # JSON-LD schema, robots.txt, llms.txt / llms-full.txt
 build.py            # builds 9 core pages (incl. New Patients + 404), sitemap.xml, robots.txt, + 8 Learning Hub guides + 15 Blog posts -> dist/
 tools_emblem.py     # generates emblem-dark.svg, emblem-light.svg, favicon.svg
 src/layout.html     # shared header (Facebook emblem + script lockup), Deep Green footer (Facebook banner), schema.org
@@ -58,3 +59,12 @@ python3 build.py serve    # build + serve on http://localhost:8080
 - `src/review/index.html` → `dist/review/index.html` (served at `/review/`). Standalone, mobile-first, `noindex`, excluded from the sitemap.
 - Links: Google (listing via CID; swap in the Business Profile "Ask for reviews" `g.page/r/.../review` link when available), Facebook reviews, Tebra.
 - `qr/review-qr.svg` / `qr/review-qr.png` point at `https://www.burdsfamilypractice.com/review/`. Regenerate if the page is hosted elsewhere.
+
+## v3: SEO & AI search (Nov 2026)
+
+- **Home hero**: the Facebook banner is the full-width opening image (background matched to the artwork's teal), followed by the H1, CTAs and an "at a glance" bar (live open/closed status, directions, rating, payment options). New map + towns section and an 8-question FAQ.
+- **`seo.py`**: per-page JSON-LD `@graph`: MedicalClinic (services, DPC prices, area served, providers, ratings), WebSite, Person for each provider, BreadcrumbList, FAQPage (auto-built from any `<div class="faq">`), Article/BlogPosting for guides and posts.
+- **AI assistants**: `llms.txt` (key facts + page index) and `llms-full.txt` (full text of every page); `robots.txt` explicitly allows Google, Bing, Apple, GPTBot/OAI-SearchBot, ClaudeBot, PerplexityBot and others.
+- **Meta**: keyword-led titles kept under ~70 chars, Open Graph/Twitter cards, geo tags, robots preview directives, sitemap `lastmod` from git history.
+- **New page**: `areas-we-serve.html` (Dubuque, Asbury, Epworth, Farley, Dyersville, Cascade and more).
+- **Env vars**: `SITE_URL` (canonical/schema/sitemap host, default `https://www.burdsfamilypractice.com/`) and `SITE_BASE` (absolute base for 404.html). The Pages workflow sets both for the github.io URL.

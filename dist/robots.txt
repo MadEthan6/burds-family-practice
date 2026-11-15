@@ -1,4 +1,96 @@
+# Burds Family Practice: search engines and AI assistants are welcome.
+
+User-agent: Googlebot
+Allow: /
+Disallow: /review/
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /review/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /review/
+
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /review/
+
+User-agent: Applebot
+Allow: /
+Disallow: /review/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /review/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /review/
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /review/
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /review/
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /review/
+
+User-agent: Claude-SearchBot
+Allow: /
+Disallow: /review/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /review/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /review/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /review/
+
+User-agent: Perplexity-User
+Allow: /
+Disallow: /review/
+
+User-agent: CCBot
+Allow: /
+Disallow: /review/
+
+User-agent: Meta-ExternalAgent
+Allow: /
+Disallow: /review/
+
+User-agent: Amazonbot
+Allow: /
+Disallow: /review/
+
+User-agent: YouBot
+Allow: /
+Disallow: /review/
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /review/
+
+User-agent: MistralAI-User
+Allow: /
+Disallow: /review/
+
+User-agent: DuckAssistBot
+Allow: /
+Disallow: /review/
+
 User-agent: *
 Allow: /
+Disallow: /review/
 
 Sitemap: https://www.burdsfamilypractice.com/sitemap.xml
+# LLM guide: https://www.burdsfamilypractice.com/llms.txt

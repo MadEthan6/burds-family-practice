@@ -22,6 +22,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so sitemap lastmod dates are real
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -29,6 +31,9 @@ jobs:
         env:
           # Project URL lives under /<repo>/. Change to "/" once a custom domain is set.
           SITE_BASE: /${{ github.event.repository.name }}/
+          # Public URL for canonical links, schema, sitemap and llms.txt.
+          # Switch both values to the real domain when burdsfamilypractice.com points here.
+          SITE_URL: https://madethan6.github.io/${{ github.event.repository.name }}/
         run: python3 build.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

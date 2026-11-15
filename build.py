@@ -10,13 +10,18 @@ Usage:
   python3 build.py          # build all 31 pages into dist/
   python3 build.py serve    # build, then serve dist/ on http://localhost:8080
 """
+import datetime
 import hashlib
+import json
+import subprocess
 import html as html_lib
 import re
 import shutil
 import os
 import sys
 from pathlib import Path
+
+import seo
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
@@ -25,6 +30,8 @@ DIST = ROOT / "dist"
 # "/" for a custom domain, "/<repo>/" for a GitHub Pages project URL.
 SITE_BASE = os.environ.get("SITE_BASE", "/")
 MIRROR = ROOT / "mirror" / "www.burdsfamilypractice.com"
+# Public URL of the deployed site, used for canonical links, schema, sitemap and llms.txt.
+SITE = os.environ.get("SITE_URL", "https://www.burdsfamilypractice.com/").rstrip("/") + "/"
 
 NAV = [
     ("new", "new-patients.html", "New Patients"),
@@ -44,7 +51,8 @@ def parse_meta(text):
     if not m:
         raise ValueError("page is missing its metadata comment")
     meta = {}
-    for part in m.group(1).split("|"):
+    # Split only on "|" that starts a new "key:" so titles may contain "|".
+    for part in re.split(r"\|(?=\s*(?:title|description|nav|type)\s*:)", m.group(1)):
         key, _, value = part.partition(":")
         meta[key.strip()] = value.strip()
     return meta, text[m.end():]
@@ -117,14 +125,24 @@ def _asset_hash(rel_path):
     return hashlib.sha256(data).hexdigest()[:10]
 
 
-def render_page(layout, *, title, description, path, nav_key, base, content, css_v="", js_v=""):
+def render_page(layout, *, title, description, path, nav_key, base, content,
+                css_v="", js_v="", page_type="WebPage", crumbs=None, extra=None):
+    # Keep titles near Google's ~60-70 character display limit: add the brand only if it fits.
+    brand = " | Burds Family Practice"
+    plain_len = len(html_lib.unescape(title))
     full_title = (
-        title if "Burds Family Practice" in title else f"{title} | Burds Family Practice"
+        title if "Burds Family Practice" in title or plain_len + len(brand) > 70
+        else title + brand
     )
     rendered = (
-        layout.replace("{{title}}", full_title)
-        .replace("{{description}}", description)
+        layout.replace("{{title}}", html_lib.escape(html_lib.unescape(full_title), quote=False))
+        .replace("{{description}}", html_lib.escape(html_lib.unescape(description)))
+        .replace("{{site}}", SITE)
         .replace("{{path}}", path)
+        .replace("{{robots}}", ROBOTS_NOINDEX if path == "404.html" else ROBOTS_INDEX)
+        .replace("{{schema}}", seo.page_schema(
+            site=SITE, path=path, title=full_title, description=description,
+            content=content, page_type=page_type, crumbs=crumbs, extra=extra))
         .replace("{{base}}", base)
         .replace("{{css_v}}", css_v)
         .replace("{{js_v}}", js_v)
@@ -134,7 +152,15 @@ def render_page(layout, *, title, description, path, nav_key, base, content, css
     leftover = re.findall(r"\{\{\w+\}\}", rendered)
     if leftover:
         raise ValueError(f"{path}: unreplaced placeholders {leftover}")
+    PAGES_INDEX.append({"path": path, "title": title, "description": description,
+                        "content": content, "section": nav_key})
     return rendered
+
+
+ROBOTS_INDEX = "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+ROBOTS_NOINDEX = "noindex, follow"
+# Every rendered page, used afterwards to write llms.txt / llms-full.txt.
+PAGES_INDEX = []
 
 
 def build_learn_pages(layout):
@@ -147,6 +173,8 @@ def build_learn_pages(layout):
     for src_file in sorted(learn_dir.glob("*.html")):
         raw = src_file.read_text(encoding="utf-8", errors="replace")
         title, desc = extract_title_desc(raw, src_file.stem.replace("-", " ").title())
+        # Drop Squarespace marketing tails ("| Discover ... Today") from guide titles.
+        title = title.split(" | ")[0].strip() + " | Burds Family Practice"
         div_marker = re.compile(r'<div\s+class="bfp-learn"[^>]*>', re.I)
         m_div = div_marker.search(raw)
         if not m_div:
@@ -174,6 +202,8 @@ def build_learn_pages(layout):
             nav_key="resources",
             base="../",
             content=content,
+            page_type="Article",
+            crumbs=[("Resources", "resources.html"), ("Learning Hub", "resources.html#guides")],
         )
         (out_dir / src_file.name).write_text(html, encoding="utf-8")
         count += 1
@@ -260,6 +290,9 @@ def build_blog_pages(layout):
             nav_key="resources",
             base="../",
             content=content,
+            page_type="BlogPosting",
+            crumbs=[("Resources", "resources.html"), ("Blog", "resources.html#blog")],
+            extra={"datePublished": date_iso, "headline": re.sub(r"<[^>]+>", "", h1_text)},
         )
         (out_dir / src_file.name).write_text(html, encoding="utf-8")
         count += 1
@@ -292,6 +325,8 @@ def build():
             content=body,
             css_v=css_v,
             js_v=js_v,
+            page_type=meta.get("type", "WebPage"),
+            crumbs=[] if page.name in ("index.html", "404.html") else None,
         )
         (DIST / page.name).write_text(html, encoding="utf-8")
 
@@ -301,33 +336,48 @@ def build():
     learn_count = build_learn_pages(layout)
     blog_count = build_blog_pages(layout)
     write_sitemap()
+    seo.write_llms(DIST, SITE, PAGES_INDEX)
     total = len(pages) + learn_count + blog_count
     print(
         f"Built {total} pages ({len(pages)} core, {learn_count} learn guides, {blog_count} blog posts) into {DIST}"
     )
 
 
-SITE = "https://www.burdsfamilypractice.com/"
+
+def _lastmod(rel):
+    """Last git commit date of the source behind a built page (falls back to today)."""
+    if rel.startswith("learn/") or rel.startswith("blog/"):
+        src = MIRROR / rel
+    else:
+        src = SRC / "pages" / rel
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%cs", "--", str(src)],
+                             cwd=ROOT, capture_output=True, text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        out = ""
+    return out or datetime.date.today().isoformat()
 
 
 def write_sitemap():
-    """Emit sitemap.xml (every built page except 404) and robots.txt."""
-    urls = []
+    """Emit sitemap.xml (every indexable page, with lastmod) and robots.txt."""
+    entries = []
     for f in sorted(DIST.rglob("*.html")):
         rel = f.relative_to(DIST).as_posix()
         if rel == "404.html" or rel.startswith("review/"):
             continue
-        urls.append(SITE + ("" if rel == "index.html" else rel))
-    body = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
+        loc = SITE + ("" if rel == "index.html" else rel)
+        prio = "1.0" if rel == "index.html" else ("0.6" if "/" in rel else "0.8")
+        entries.append(
+            f"  <url><loc>{loc}</loc><lastmod>{_lastmod(rel)}</lastmod>"
+            f"<priority>{prio}</priority></url>"
+        )
     (DIST / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        f"{body}\n</urlset>\n",
+        + "\n".join(entries) + "\n</urlset>\n",
         encoding="utf-8",
     )
-    (DIST / "robots.txt").write_text(
-        f"User-agent: *\nAllow: /\n\nSitemap: {SITE}sitemap.xml\n", encoding="utf-8"
-    )
+    (DIST / "robots.txt").write_text(seo.robots_txt(SITE), encoding="utf-8")
 
 
 def serve(port=8080):
