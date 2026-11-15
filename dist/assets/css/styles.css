@@ -2819,3 +2819,252 @@ a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visibl
 .dpc-calc { align-items: start; border-radius: var(--radius-lg); }
 .dpc-calc__intro h3 { margin-bottom: 0.25rem; }
 .dpc-calc__intro p { color: var(--steady-stone); margin-bottom: 1.25rem; }
+
+/* =====================================================================
+   v5 TOUCH & PHONE OVERHAUL
+   - 44–48px tap targets on touch screens (WCAG 2.5.5 / Apple HIG)
+   - no sticky hover effects on touch; pressed-state feedback instead
+   - 16px form text (stops iOS zoom-on-focus)
+   - 4-button bottom action bar with safe-area padding
+   - full-height scrollable menu, swipe rows, stacked comparison table
+   ===================================================================== */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+a, button, summary, label, input, select, textarea, [role="button"] {
+  touch-action: manipulation;           /* no double-tap zoom delay */
+  -webkit-tap-highlight-color: rgba(214, 163, 121, 0.22);
+}
+input, select, textarea { font-size: max(16px, 1rem) !important; }
+img { -webkit-user-drag: none; }
+
+/* Hover lifts only on devices that really hover */
+@media (hover: none) {
+  .card:hover, .town-card:hover, .task:hover, .review-card:hover,
+  .proof-pill--link:hover, .rating-pill:hover, .btn:hover {
+    transform: none;
+  }
+  .card--media:hover img { transform: none; }
+}
+/* Pressed feedback for taps */
+.btn:active, .task:active, .card:active, .town-card:active,
+.mobile-bar__btn:active, .dpc-preset:active, .filter-pill:active, .chip:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+/* ---------- Touch-size targets ---------- */
+@media (pointer: coarse) {
+  .btn, .btn--sm { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; }
+  .card__link, .glance__link, .breadcrumb, .author-box a, .hero-fact-link,
+  .dpc-preset, .filter-pill, .quick-jump a, .chip, .rating-pill {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .glance__link { padding-top: 0; }
+  .social-btn { width: 48px; height: 48px; }
+  .dpc-stepper button { width: 44px; height: 44px; font-size: 1.3rem; }
+  .dpc-stepper { gap: 0.5rem; }
+  .dpc-switch { min-height: 44px; align-items: center; cursor: pointer; }
+  .dpc-switch input { width: 24px; height: 24px; }
+  .faq summary { min-height: 56px; display: flex; align-items: center; }
+  .footer-links li { margin: 0; }
+  .footer-links a { display: inline-flex; align-items: center; min-height: 44px; }
+  .footer-address a { display: inline-block; padding: 0.35rem 0; }
+  .topbar a { display: inline-block; padding: 0.55rem 0; }
+  .site-nav ul a { min-height: 52px; display: flex; align-items: center; }
+  .nav-toggle { width: 48px; height: 48px; }
+}
+
+/* ---------- Menu: full-height panel that scrolls on short screens ---------- */
+@media (max-width: 1220px) {
+  .site-nav {
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  }
+  .site-nav.is-open { animation: menu-in 0.18s ease-out; }
+  .site-nav ul a { font-size: 1.15rem; }
+  .site-nav__actions { display: grid; gap: 0.6rem; }
+  .site-nav__actions .btn { width: 100%; }
+  html.nav-open { overflow: hidden; }
+  html.nav-open body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 40, 44, 0.45);
+  }
+}
+@keyframes menu-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Bottom quick-action bar (phones) ---------- */
+.mobile-bar { display: none; }
+@media (max-width: 720px) {
+  body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+  .mobile-call, .back-to-top { display: none !important; }
+  .mobile-bar {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr 1fr 1fr;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    background: var(--deep-green-dark);
+    border-top: 2px solid var(--warm-glow);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.25);
+    padding: 0.4rem 0.4rem calc(0.4rem + env(safe-area-inset-bottom));
+    gap: 0.35rem;
+  }
+  .mobile-bar__btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 54px;
+    border-radius: 12px;
+    color: var(--gentle-light);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .mobile-bar__btn svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mobile-bar__btn--call { background: var(--warm-glow); color: var(--deep-green-dark); font-size: 0.9rem; }
+
+  /* Top bar: one tidy row (status + portal); phone lives in the bottom bar */
+  .topbar__inner { flex-wrap: nowrap; padding: 0.15rem 0; }
+  .topbar__links a { margin-left: 0; }
+  .topbar__links a:not(:last-child) { display: none; }
+  .topbar__status { font-size: 0.85rem; }
+
+  /* Readable small labels */
+  .eyebrow, .glance__label, .dpc-tier__label, .card-meta-tag, .meta, .path-card__tag,
+  .author-box__label, .footer-h, .occ-ledger__eyebrow, .badge { font-size: 0.82rem; }
+  .brand__sub { font-size: 0.78rem; }
+  .brand__loc { font-size: 0.72rem; }
+
+  /* Comfortable rhythm */
+  .section { padding: 3.25rem 0; }
+  .section-head { margin-bottom: 1.75rem; }
+  .btn-row { gap: 0.65rem; }
+  .btn-row .btn { flex: 1 1 100%; }
+  .card { padding: 1.5rem; }
+  .glance__item { padding: 1.1rem 1.25rem; }
+
+  /* Swipe rows: reviews and team cards scroll sideways with snap points */
+  [data-swipe] {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1.25rem;
+    margin-inline: -1.25rem;
+    padding: 0.25rem 1.25rem 1.25rem;
+    scrollbar-width: none;
+    position: relative;
+  }
+  [data-swipe]::-webkit-scrollbar { display: none; }
+  [data-swipe] > * { flex: 0 0 84%; scroll-snap-align: start; }
+  [data-swipe]::after { content: ""; flex: 0 0 1px; }
+  .swipe-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: -0.5rem 0 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--rooted-sage);
+  }
+
+  /* Comparison table → stacked cards */
+  .table-wrap { overflow: visible; border: 0; background: none; box-shadow: none; }
+  .compare { min-width: 0; }
+  .compare thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .compare, .compare tbody, .compare tr, .compare th, .compare td { display: block; width: 100%; }
+  .compare tr {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .compare tbody th {
+    width: auto;
+    background: var(--gentle-light);
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    padding: 0.85rem 1.1rem;
+  }
+  .compare td { padding: 0.75rem 1.1rem; }
+  .compare td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--rooted-sage);
+    margin-bottom: 0.15rem;
+  }
+  .compare td.is-burds { border-left: 4px solid var(--warm-glow); }
+  .compare td.is-burds::before { color: var(--warm-glow-ink); }
+  .compare tr:last-child > * { border-bottom: 1px solid var(--border); }
+  .compare tr > :last-child { border-bottom: 0 !important; }
+
+  /* Hours tables and map */
+  .area__map iframe { aspect-ratio: 4 / 3.6; border-radius: 18px; }
+}
+@media (min-width: 721px) { .swipe-hint { display: none; } }
+
+/* Learning Hub guides: lift their tiny labels to a readable size */
+.bfp-learn .cs-label, .bfp-learn .ms-label, .bfp-learn .model-badge,
+.bfp-learn .dg-go, .bfp-learn .price-per, .bfp-learn [class$="-label"] {
+  font-size: max(0.8rem, 12.5px) !important;
+}
+@media (max-width: 720px) {
+  .bfp-learn table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+@media (pointer: coarse) {
+  .site-footer .social-links .social-btn { width: 48px; height: 48px; }
+  .site-footer .footer-address a { display: inline-flex; align-items: center; min-height: 44px; padding: 0; }
+  .topbar .topbar__links a { min-height: 44px; display: inline-flex; align-items: center; padding: 0; }
+  .dpc-calc .dpc-switch input[type="checkbox"] { width: 26px; height: 26px; min-height: 0; }
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { min-height: 48px; }
+}
+@media (max-width: 720px) {
+  .post-card .meta, .resource-card .meta, span.meta, p.role, .team-mini .role { font-size: 0.82rem; }
+  .mobile-bar__btn { font-size: 0.82rem; }
+}
+@media (max-width: 720px) {
+  .post-list .meta { font-size: 0.82rem; }
+}
+.bfp-learn .cs-label, .bfp-learn .ms-label, .bfp-learn .model-badge,
+.bfp-learn .dg-go, .bfp-learn .price-per, .bfp-learn [class$="-label"],
+.bfp-learn .eyebrow { font-size: max(0.82rem, 13px) !important; }
+@media (pointer: coarse) {
+  .about-brand a, .brand-card a, .split a[target="_blank"]:not(.btn) { display: inline-flex; align-items: center; min-height: 44px; }
+}
+@media (max-width: 720px) {
+  .topbar .topbar__links a:not(:last-child) { display: none !important; }
+  .topbar .topbar__inner { flex-wrap: nowrap; gap: 0.75rem; }
+  .topbar__status { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .topbar__links { flex: none; }
+}
+@media (pointer: coarse) {
+  .back-to-top { min-height: 48px; min-width: 48px; }
+  .eyebrow, .glance__label, .footer-h { font-size: max(0.82rem, 13px); }
+}

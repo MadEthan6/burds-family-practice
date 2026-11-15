@@ -4,14 +4,23 @@
   var toggle = document.querySelector('.nav-toggle');
   var nav = document.getElementById('site-nav');
   if (toggle && nav) {
-    function closeNav() {
-      toggle.setAttribute('aria-expanded', 'false');
-      nav.classList.remove('is-open');
+    function setNav(open) {
+      toggle.setAttribute('aria-expanded', String(open));
+      nav.classList.toggle('is-open', open);
+      // Lock page scroll behind the open menu on phones
+      document.documentElement.classList.toggle('nav-open', open);
     }
+    function closeNav() { setNav(false); }
     toggle.addEventListener('click', function () {
-      var open = toggle.getAttribute('aria-expanded') === 'true';
-      toggle.setAttribute('aria-expanded', String(!open));
-      nav.classList.toggle('is-open', !open);
+      setNav(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+    // Tapping a menu link (including same-page #anchors) closes the menu
+    nav.addEventListener('click', function (e) {
+      if (e.target.closest('a')) closeNav();
+    });
+    // Close the menu if the screen grows to desktop width
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 1220 && nav.classList.contains('is-open')) closeNav();
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && nav.classList.contains('is-open')) {
@@ -310,6 +319,27 @@
       details.forEach(function (d) { if (!d.open) anyClosed = true; });
       details.forEach(function (d) { d.open = anyClosed; });
       btn.textContent = anyClosed ? 'Collapse all questions' : 'Expand all questions';
+    });
+  });
+
+  // 6b. Swipe rows on phones: hide the "swipe" hint once the user has scrolled
+  document.querySelectorAll('[data-swipe]').forEach(function (row) {
+    row.addEventListener('scroll', function () {
+      if (row.scrollLeft > 24) {
+        row.classList.add('is-swiped');
+        var hint = row.previousElementSibling;
+        if (hint && hint.classList.contains('swipe-hint')) hint.style.visibility = 'hidden';
+      }
+    }, { passive: true });
+  });
+
+  // 6c. Learning Hub guides (imported from Squarespace) hard-code many tiny labels;
+  // raise anything under 13px so it stays readable on phones.
+  document.querySelectorAll('.bfp-learn').forEach(function (root) {
+    root.querySelectorAll('*').forEach(function (el) {
+      if (!el.firstChild || el.closest('svg')) return;
+      var size = parseFloat(getComputedStyle(el).fontSize);
+      if (size && size < 13) el.style.setProperty('font-size', '13px', 'important');
     });
   });
 

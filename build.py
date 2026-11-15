@@ -125,6 +125,25 @@ def _asset_hash(rel_path):
     return hashlib.sha256(data).hexdigest()[:10]
 
 
+def label_compare_tables(markup):
+    """Add data-label (column heading) to each cell of .compare tables so CSS can
+    restack them as cards on phones."""
+    def one_table(m):
+        table = m.group(0)
+        heads = [re.sub(r"<[^>]+>", "", h).strip()
+                 for h in re.findall(r"<th[^>]*scope=\"col\"[^>]*>(.*?)</th>", table, re.S)]
+        if not heads:
+            return table
+
+        def one_row(rm):
+            cells = iter(heads[1:])
+            return re.sub(r"<td(?![^>]*data-label)",
+                          lambda _: f'<td data-label="{html_lib.escape(next(cells, ""))}"',
+                          rm.group(0))
+        return re.sub(r"<tr>.*?</tr>", one_row, table, flags=re.S)
+    return re.sub(r'<table class="compare">.*?</table>', one_table, markup, flags=re.S)
+
+
 def render_page(layout, *, title, description, path, nav_key, base, content,
                 css_v="", js_v="", page_type="WebPage", crumbs=None, extra=None):
     # Keep titles near Google's ~60-70 character display limit: add the brand only if it fits.
@@ -147,7 +166,7 @@ def render_page(layout, *, title, description, path, nav_key, base, content,
         .replace("{{css_v}}", css_v)
         .replace("{{js_v}}", js_v)
         .replace("{{nav}}", nav_html(nav_key, base=base))
-        .replace("{{content}}", content)
+        .replace("{{content}}", label_compare_tables(content))
     )
     leftover = re.findall(r"\{\{\w+\}\}", rendered)
     if leftover:
