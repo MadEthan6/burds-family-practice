@@ -14,12 +14,16 @@ import hashlib
 import html as html_lib
 import re
 import shutil
+import os
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 SRC = ROOT / "src"
 DIST = ROOT / "dist"
+# Root path the site is served from; 404.html needs absolute links.
+# "/" for a custom domain, "/<repo>/" for a GitHub Pages project URL.
+SITE_BASE = os.environ.get("SITE_BASE", "/")
 MIRROR = ROOT / "mirror" / "www.burdsfamilypractice.com"
 
 NAV = [
@@ -284,7 +288,7 @@ def build():
             description=meta.get("description", ""),
             path="" if page.name == "index.html" else page.name,
             nav_key=meta.get("nav", ""),
-            base="/" if page.name == "404.html" else "",
+            base=SITE_BASE if page.name == "404.html" else "",
             content=body,
             css_v=css_v,
             js_v=js_v,
