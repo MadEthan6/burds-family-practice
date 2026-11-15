@@ -250,21 +250,36 @@ def build_blog_pages(layout):
             if date_iso
             else ""
         )
-        content = f"""    <section class="article-shell">
+        words = len(re.sub(r"<[^>]+>", " ", body_div).split())
+        read_min = max(1, -(-words // 220))  # round up
+        content = f"""    <section class="article-hero">
+      <div class="container article-hero__inner">
+        <a class="breadcrumb breadcrumb--light" href="../resources.html#blog">← Resources &amp; Blog</a>
+        <span class="eyebrow eyebrow--warm">Community Health Blog</span>
+        <h1>{h1_text}</h1>
+        <div class="article-meta article-meta--light">
+          {date_html}
+          <span>{read_min} min read</span>
+          <span>By Jennifer Burds, DNP, ARNP</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="article-shell">
       <div class="container">
         <article class="article-wrap">
-          <a class="breadcrumb" href="../resources.html#blog">← Back to Resources &amp; Blog</a>
-          <header class="article-head">
-            <span class="eyebrow">Community Health Blog</span>
-            <h1>{h1_text}</h1>
-            <div class="article-meta">
-              {date_html}
-              <span>Written by Jennifer Burds, DNP, ARNP · Peosta, IA</span>
-            </div>
-          </header>
           <div class="prose">
             {body_div}
           </div>
+          <aside class="author-box" aria-label="About the author">
+            <span class="author-box__photo"><img src="../assets/img/team/jenny-burds.jpg" alt="Jenny Burds, DNP, ARNP" width="96" height="96" loading="lazy"></span>
+            <div>
+              <span class="author-box__label">Written &amp; reviewed by</span>
+              <strong>Jennifer (Jenny) Burds, DNP, ARNP</strong>
+              <p>Owner and family nurse practitioner at Burds Family Practice in Peosta, Iowa, with 30 years in healthcare. This article is general information, not a substitute for a visit.</p>
+              <a href="../about.html#team">Meet our providers →</a>
+            </div>
+          </aside>
         </article>
       </div>
     </section>
